@@ -1,3 +1,5 @@
+mod util;
+
 use directories::ProjectDirs;
 use serde::Deserialize;
 use std::collections::BTreeSet;
@@ -7,6 +9,7 @@ use std::process::Command;
 use std::time::SystemTime;
 use std::time::UNIX_EPOCH;
 use toml;
+use util::grouped;
 
 #[derive(Debug)]
 enum Error {
@@ -76,42 +79,6 @@ impl From<&Vec<Vec<&str>>> for GpgKeyStatus {
             expires: line1[6].parse().ok(),
         }
     }
-}
-
-struct Grouped<I, T>
-where
-    I: Iterator<Item = T>,
-{
-    n: usize,
-    it: I,
-}
-impl<I, T> Iterator for Grouped<I, T>
-where
-    I: Iterator<Item = T>,
-{
-    type Item = Vec<T>;
-    fn next(&mut self) -> Option<Vec<T>> {
-        let mut nexts: Vec<T> = Vec::new();
-
-        loop {
-            match self.it.next() {
-                Some(next) => nexts.push(next),
-                None => break,
-            };
-            if nexts.len() == self.n {
-                break;
-            }
-        }
-        if nexts.is_empty() {
-            None
-        } else {
-            Some(nexts)
-        }
-    }
-}
-
-fn grouped<T, I: Iterator<Item = T>>(n: usize, it: I) -> Grouped<I, T> {
-    Grouped { n: n, it: it }
 }
 
 fn run() -> Result<i32, Error> {
