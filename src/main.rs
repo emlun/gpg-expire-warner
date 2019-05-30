@@ -64,11 +64,13 @@ fn run() -> Result<i32, Error> {
         v
     };
 
-    let output = Command::new("gpg")
-        .args(args)
-        .output()
-        .expect("GPG command failed");
-    let output = String::from_utf8(output.stdout)?;
+    let output = String::from_utf8(
+        Command::new("gpg")
+            .args(args)
+            .output()
+            .expect("GPG command failed")
+            .stdout,
+    )?;
     let keys: Vec<GpgKeyStatus> = grouped(
         2,
         output
@@ -79,15 +81,10 @@ fn run() -> Result<i32, Error> {
     .map(|group| (&group).into())
     .collect();
 
-    let matched_keys: Vec<&GpgKeyStatus> = keys
+    let now_secs = SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs();
+    let expiring_keys: Vec<&GpgKeyStatus> = keys
         .iter()
         .filter(|key_status| config.keys.contains(&key_status.fingerprint))
-        .collect();
-
-    let now_secs = SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs();
-
-    let expiring_keys: Vec<&&GpgKeyStatus> = matched_keys
-        .iter()
         .filter(|key_status| match key_status.expire_days(now_secs) {
             Some(days) => days <= (config.warn_days as i64),
             None => false,
