@@ -8,7 +8,7 @@ Prints a warning when GPG keys are about to expire
 ```
 $ exec bash
 The following GPG keys will expire soon:
-2C7D8465F19C3CDC26237087BFD86BE9948C849A: -20 days
+2C7D8465F19C3CDC26237087BFD86BE9948C849A: 5 days
 57E0FE20CF9F7BF57769909C0252D762936969DD: -20 days
 ```
 
