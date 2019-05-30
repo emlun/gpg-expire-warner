@@ -96,7 +96,7 @@ fn run() -> Result<i32, Error> {
     let keys: Vec<GpgKeyStatus> = output
         .lines()
         .map(|line| line.split(":").collect::<Vec<&str>>())
-        .filter(|line| line[0] == "pub" || line[0] == "sub" || line[0] == "fpr")
+        .filter(|line| ["pub", "sub", "fpr"].contains(&line[0]))
         .grouped(2)
         .map(|group| (&group).into())
         .collect();
