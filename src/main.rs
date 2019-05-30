@@ -16,13 +16,47 @@ struct Opt {
 
     #[structopt(name = "keys")]
     /// GPG key IDs in long format (40 uppercase hex characters, no spaces)
-    keys: Vec<String>,
+    keys: Vec<KeyId>,
+}
+
+#[derive(Debug)]
+struct KeyIdError<'a>(&'a str);
+impl<'a> std::error::Error for KeyIdError<'a> {}
+impl<'a> std::fmt::Display for KeyIdError<'a> {
+    fn fmt(&self, fmt: &mut std::fmt::Formatter) -> Result<(), std::fmt::Error> {
+        fmt.write_str(self.0)
+    }
+}
+
+#[derive(Debug, Eq, PartialEq)]
+struct KeyId(String);
+impl std::fmt::Display for KeyId {
+    fn fmt(&self, fmt: &mut std::fmt::Formatter) -> Result<(), std::fmt::Error> {
+        fmt.write_str(&self.0)
+    }
+}
+impl std::str::FromStr for KeyId {
+    type Err = KeyIdError<'static>;
+    fn from_str(id: &str) -> Result<Self, Self::Err> {
+        if id.len() == 40 && id.chars().all(|c| "0123456789ABCDEF".contains(c)) {
+            Ok(KeyId(id.to_string()))
+        } else {
+            Err(KeyIdError(
+                "Key ID must be exactly 40 uppercase hex characters.",
+            ))
+        }
+    }
+}
+impl AsRef<str> for KeyId {
+    fn as_ref(&self) -> &str {
+        &self.0
+    }
 }
 
 #[derive(Debug)]
 struct GpgKeyStatus {
     subkey: bool,
-    fingerprint: String,
+    fingerprint: KeyId,
     expires: Option<u64>,
 }
 impl GpgKeyStatus {
@@ -37,7 +71,7 @@ impl From<&Vec<Vec<&str>>> for GpgKeyStatus {
         let line2 = &input[1];
         GpgKeyStatus {
             subkey: line1[0] == "sub",
-            fingerprint: line2[9].to_string(),
+            fingerprint: line2[9].parse().expect("Failed to parse key ID from GPG"),
             expires: line1[6].parse().ok(),
         }
     }
@@ -47,8 +81,8 @@ fn run() -> Result<i32, Error> {
     let opt = Opt::from_args();
 
     let args = {
-        let mut v = vec!["--with-colons", "--fixed-list-mode", "--list-keys"];
-        opt.keys.iter().for_each(|k| v.push(k));
+        let mut v: Vec<&str> = vec!["--with-colons", "--fixed-list-mode", "--list-keys"];
+        opt.keys.iter().for_each(|k| v.push(k.as_ref()));
         v
     };
 
