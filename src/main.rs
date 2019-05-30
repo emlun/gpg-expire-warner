@@ -102,9 +102,11 @@ fn run() -> Result<i32, Error> {
                 days = remaining_days
             );
         }
-    }
 
-    Ok(0)
+        Ok(1)
+    } else {
+        Ok(0)
+    }
 }
 
 fn main() -> () {
