@@ -31,6 +31,13 @@ where
     }
 }
 
-pub fn grouped<I: Iterator>(n: usize, it: I) -> Grouped<I> {
-    Grouped { n: n, it: it }
+pub trait GroupedExt: Iterator {
+    fn grouped(self, n: usize) -> Grouped<Self>
+    where
+        Self: Sized,
+    {
+        Grouped { n: n, it: self }
+    }
 }
+
+impl<I: Iterator> GroupedExt for I {}

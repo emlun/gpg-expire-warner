@@ -6,7 +6,7 @@ use std::process::Command;
 use std::time::SystemTime;
 use std::time::UNIX_EPOCH;
 use structopt::StructOpt;
-use util::grouped;
+use util::GroupedExt;
 
 #[derive(StructOpt)]
 struct Opt {
@@ -59,15 +59,13 @@ fn run() -> Result<i32, Error> {
             .expect("GPG command failed")
             .stdout,
     )?;
-    let keys: Vec<GpgKeyStatus> = grouped(
-        2,
-        output
-            .lines()
-            .map(|line| line.split(":").collect::<Vec<&str>>())
-            .filter(|line| line[0] == "pub" || line[0] == "sub" || line[0] == "fpr"),
-    )
-    .map(|group| (&group).into())
-    .collect();
+    let keys: Vec<GpgKeyStatus> = output
+        .lines()
+        .map(|line| line.split(":").collect::<Vec<&str>>())
+        .filter(|line| line[0] == "pub" || line[0] == "sub" || line[0] == "fpr")
+        .grouped(2)
+        .map(|group| (&group).into())
+        .collect();
 
     let now_secs = SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs();
     let expiring_keys: Vec<&GpgKeyStatus> = keys
