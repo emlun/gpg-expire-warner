@@ -38,4 +38,4 @@ The following GPG keys will expire soon:
 GNU General Public License, version 3 or later.
 
 
-[cargo]: https://crates.io/
+[cargo]: https://crates.io/crates/gpg-expire-warner
