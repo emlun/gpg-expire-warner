@@ -1,18 +1,18 @@
-pub struct Grouped<I, T>
+pub struct Grouped<I>
 where
-    I: Iterator<Item = T>,
+    I: Iterator,
 {
     n: usize,
     it: I,
 }
 
-impl<I, T> Iterator for Grouped<I, T>
+impl<I> Iterator for Grouped<I>
 where
-    I: Iterator<Item = T>,
+    I: Iterator,
 {
-    type Item = Vec<T>;
-    fn next(&mut self) -> Option<Vec<T>> {
-        let mut nexts: Vec<T> = Vec::new();
+    type Item = Vec<I::Item>;
+    fn next(&mut self) -> Option<Self::Item> {
+        let mut nexts: Self::Item = Vec::new();
 
         loop {
             match self.it.next() {
@@ -31,6 +31,6 @@ where
     }
 }
 
-pub fn grouped<T, I: Iterator<Item = T>>(n: usize, it: I) -> Grouped<I, T> {
+pub fn grouped<I: Iterator>(n: usize, it: I) -> Grouped<I> {
     Grouped { n: n, it: it }
 }
