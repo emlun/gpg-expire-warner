@@ -1,0 +1,7 @@
+[package]
+name = "gpg-expire-warner"
+version = "0.1.0"
+authors = ["Emil Lundberg <emil@emlun.se>"]
+edition = "2018"
+
+[dependencies]
