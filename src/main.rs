@@ -1,34 +1,22 @@
 mod error;
 mod util;
 
-use directories::ProjectDirs;
 use error::Error;
-use serde::Deserialize;
-use std::collections::BTreeSet;
-use std::fs::File;
-use std::io::Read;
 use std::process::Command;
 use std::time::SystemTime;
 use std::time::UNIX_EPOCH;
-use toml;
+use structopt::StructOpt;
 use util::grouped;
 
-#[derive(Debug, Deserialize)]
-struct Config {
-    keys: BTreeSet<String>,
-    warn_days: u64,
-}
+#[derive(StructOpt)]
+struct Opt {
+    #[structopt(short = "d", long = "days")]
+    /// Number of days before expiry to start warning
+    warn_days: i64,
 
-fn read_config() -> Result<Config, Error> {
-    let mut contents: String = String::new();
-    let mut file = File::open(
-        ProjectDirs::from("", "", "gpg-expire-warner")
-            .expect("Failed to locate config directory")
-            .config_dir()
-            .join("config.toml"),
-    )?;
-    file.read_to_string(&mut contents)?;
-    Ok(toml::from_str(&contents)?)
+    #[structopt(name = "keys")]
+    /// GPG key IDs in long format (40 uppercase hex characters, no spaces)
+    keys: Vec<String>,
 }
 
 #[derive(Debug)]
@@ -56,11 +44,11 @@ impl From<&Vec<Vec<&str>>> for GpgKeyStatus {
 }
 
 fn run() -> Result<i32, Error> {
-    let config = read_config()?;
+    let opt = Opt::from_args();
 
     let args = {
         let mut v = vec!["--with-colons", "--fixed-list-mode", "--list-keys"];
-        config.keys.iter().for_each(|k| v.push(k));
+        opt.keys.iter().for_each(|k| v.push(k));
         v
     };
 
@@ -84,9 +72,9 @@ fn run() -> Result<i32, Error> {
     let now_secs = SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs();
     let expiring_keys: Vec<&GpgKeyStatus> = keys
         .iter()
-        .filter(|key_status| config.keys.contains(&key_status.fingerprint))
+        .filter(|key_status| opt.keys.contains(&key_status.fingerprint))
         .filter(|key_status| match key_status.expire_days(now_secs) {
-            Some(days) => days <= (config.warn_days as i64),
+            Some(days) => days <= (opt.warn_days as i64),
             None => false,
         })
         .collect();
