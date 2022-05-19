@@ -36,7 +36,7 @@ pub trait GroupedExt: Iterator {
     where
         Self: Sized,
     {
-        Grouped { n: n, it: self }
+        Grouped { n, it: self }
     }
 }
 

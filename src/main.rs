@@ -55,7 +55,6 @@ impl AsRef<str> for KeyId {
 
 #[derive(Debug)]
 struct GpgKeyStatus {
-    subkey: bool,
     fingerprint: KeyId,
     expires: Option<u64>,
 }
@@ -70,7 +69,6 @@ impl From<&Vec<Vec<&str>>> for GpgKeyStatus {
         let line1 = &input[0];
         let line2 = &input[1];
         GpgKeyStatus {
-            subkey: line1[0] == "sub",
             fingerprint: line2[9].parse().expect("Failed to parse key ID from GPG"),
             expires: line1[6].parse().ok(),
         }
@@ -95,7 +93,7 @@ fn run() -> Result<i32, Error> {
     )?;
     let keys: Vec<GpgKeyStatus> = output
         .lines()
-        .map(|line| line.split(":").collect::<Vec<&str>>())
+        .map(|line| line.split(':').collect::<Vec<&str>>())
         .filter(|line| ["pub", "sub", "fpr"].contains(&line[0]))
         .grouped(2)
         .map(|group| (&group).into())
@@ -106,12 +104,12 @@ fn run() -> Result<i32, Error> {
         .iter()
         .filter(|key_status| opt.keys.contains(&key_status.fingerprint))
         .filter(|key_status| match key_status.expire_days(now_secs) {
-            Some(days) => days <= (opt.warn_days as i64),
+            Some(days) => days <= opt.warn_days,
             None => false,
         })
         .collect();
 
-    if expiring_keys.len() > 0 {
+    if !expiring_keys.is_empty() {
         println!("The following GPG keys will expire soon:");
 
         for key_status in &expiring_keys {
@@ -129,6 +127,6 @@ fn run() -> Result<i32, Error> {
     }
 }
 
-fn main() -> () {
+fn main() {
     std::process::exit(run().unwrap());
 }
