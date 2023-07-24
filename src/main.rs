@@ -123,8 +123,7 @@ impl GpgKeyStatus {
         self.expires
             .map(|expire| ((expire as i64) - (now_secs as i64)) / (3600 * 24))
     }
-}
-impl GpgKeyStatus {
+
     fn parse_from<'a, I>(it: &mut Peekable<I>) -> GpgKeyStatus
     where
         I: Iterator<Item = Vec<&'a str>>,
