@@ -1,6 +1,8 @@
 # gpg-expire-warner
 
-[![Crates.io](https://img.shields.io/crates/v/gpg-expire-warner.svg)](https://crates.io/crates/gpg-expire-warner) [![Crates.io](https://img.shields.io/crates/d/gpg-expire-warner.svg)](https://crates.io/crates/gpg-expire-warner) [![license](https://img.shields.io/crates/l/gpg-expire-warner.svg)](https://github.com/emlun/gpg-expire-warner/blob/master/LICENSE)
+[![Crates.io](https://img.shields.io/crates/v/gpg-expire-warner.svg)](https://crates.io/crates/gpg-expire-warner)
+[![Crates.io](https://img.shields.io/crates/d/gpg-expire-warner.svg)](https://crates.io/crates/gpg-expire-warner)
+[![license](https://img.shields.io/crates/l/gpg-expire-warner.svg)](https://github.com/emlun/gpg-expire-warner/blob/master/LICENSE)
 
 Prints a warning when GPG keys are about to expire
 
