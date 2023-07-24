@@ -1,0 +1,33 @@
+name: build
+
+on:
+  push:
+    branches:
+      - 'main'
+      - 'github-actions'
+  pull_request:
+    branches-ignore:
+      - 'tmp**'
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Check out code
+      uses: actions/checkout@v3
+
+    - name: Build
+      run: cargo build
+
+    - name: Test
+      run: cargo test
+
+    - name: Check style
+      run: cargo fmt -- --check
+
+    - name: Check lint
+      run: cargo clippy --all-targets --no-deps -- -D warnings
