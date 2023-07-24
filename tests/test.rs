@@ -10,29 +10,44 @@ struct TestEnvironment {
     long_id: String,
 }
 
-fn setup_homedir() -> Result<TestEnvironment, Box<dyn std::error::Error>> {
-    let dir = Path::new(env!("CARGO_TARGET_TMPDIR")).join("gpg-home");
+impl TestEnvironment {
+    fn gpg_cmd(&self) -> Command {
+        let mut cmd = Command::new("gpg");
+        cmd.arg("--homedir").arg(&self.homedir);
+        cmd
+    }
+
+    fn gpg_create_key_cmd(&self) -> Command {
+        let mut cmd = self.gpg_cmd();
+        cmd.stdout(Stdio::null()).stderr(Stdio::null());
+        cmd.args(["--batch"]).args(["--passphrase", ""]);
+        cmd
+    }
+}
+
+fn setup_homedir<P>(test_name: P) -> Result<TestEnvironment, Box<dyn std::error::Error>>
+where
+    P: AsRef<Path>,
+{
+    let dir = Path::new(env!("CARGO_TARGET_TMPDIR"))
+        .join(test_name)
+        .join("gpg-home");
 
     if dir.exists() {
         std::fs::remove_dir_all(&dir)?;
     }
     std::fs::create_dir_all(&dir)?;
 
-    let gpg_cmd = || {
-        let mut cmd = Command::new("gpg");
-        cmd.arg("--homedir").arg(&dir);
-        cmd
-    };
-
-    let gpg_create_key_cmd = || {
-        let mut cmd = gpg_cmd();
-        cmd.stdout(Stdio::null()).stderr(Stdio::null());
-        cmd.args(["--batch"]).args(["--passphrase", ""]);
-        cmd
+    let test_env = TestEnvironment {
+        homedir: dir,
+        short_id: "".to_string(),
+        short_unchecked_id: "".to_string(),
+        long_id: "".to_string(),
     };
 
     assert!(
-        gpg_create_key_cmd()
+        test_env
+            .gpg_create_key_cmd()
             .args([
                 "--quick-generate-key",
                 "test@example.org",
@@ -47,7 +62,8 @@ fn setup_homedir() -> Result<TestEnvironment, Box<dyn std::error::Error>> {
     );
 
     let list_keys_output = String::from_utf8(
-        gpg_cmd()
+        test_env
+            .gpg_cmd()
             .args(["--with-colons", "--fixed-list-mode", "--list-keys"])
             .output()
             .expect("GPG command failed")
@@ -63,7 +79,8 @@ fn setup_homedir() -> Result<TestEnvironment, Box<dyn std::error::Error>> {
         .unwrap();
 
     assert!(
-        gpg_create_key_cmd()
+        test_env
+            .gpg_create_key_cmd()
             .args(["--quick-add-key", main_id, "ed25519", "auth", "1d"])
             .spawn()?
             .wait()?
@@ -72,7 +89,8 @@ fn setup_homedir() -> Result<TestEnvironment, Box<dyn std::error::Error>> {
     );
 
     assert!(
-        gpg_create_key_cmd()
+        test_env
+            .gpg_create_key_cmd()
             .args(["--quick-add-key", main_id, "ed25519", "auth", "2d"])
             .spawn()?
             .wait()?
@@ -81,7 +99,8 @@ fn setup_homedir() -> Result<TestEnvironment, Box<dyn std::error::Error>> {
     );
 
     assert!(
-        gpg_create_key_cmd()
+        test_env
+            .gpg_create_key_cmd()
             .args(["--quick-add-key", main_id, "ed25519", "auth", "5d"])
             .spawn()?
             .wait()?
@@ -90,7 +109,8 @@ fn setup_homedir() -> Result<TestEnvironment, Box<dyn std::error::Error>> {
     );
 
     let list_keys_output = String::from_utf8(
-        gpg_cmd()
+        test_env
+            .gpg_cmd()
             .args(["--with-colons", "--fixed-list-mode", "--list-keys"])
             .output()
             .expect("GPG command failed")
@@ -123,26 +143,26 @@ fn setup_homedir() -> Result<TestEnvironment, Box<dyn std::error::Error>> {
         .collect();
 
     Ok(TestEnvironment {
-        homedir: dir,
         short_id: key_ids[0].to_string(),
         short_unchecked_id: key_ids[1].to_string(),
         long_id: key_ids[2].to_string(),
+        ..test_env
     })
 }
 
 #[test]
-fn test() -> Result<(), Box<dyn std::error::Error>> {
+fn test_default() -> Result<(), Box<dyn std::error::Error>> {
     let TestEnvironment {
         homedir,
         short_id,
         short_unchecked_id,
         long_id,
-    } = setup_homedir()?;
+    } = setup_homedir("test_default")?;
 
     let prog_output = String::from_utf8(
         Command::new(env!("CARGO_BIN_EXE_gpg-expire-warner"))
-            .args(["--days", "2", &short_id, &long_id])
             .env("GNUPGHOME", homedir)
+            .args(["--days", "2", &short_id, &long_id])
             .output()?
             .stdout,
     )?;
@@ -163,6 +183,56 @@ fn test() -> Result<(), Box<dyn std::error::Error>> {
     assert!(
         !prog_output.contains(&long_id),
         "Long expiry key {} found in output: {}",
+        long_id,
+        prog_output,
+    );
+    Ok(())
+}
+
+#[test]
+fn test_expand() -> Result<(), Box<dyn std::error::Error>> {
+    let TestEnvironment {
+        homedir,
+        short_id,
+        short_unchecked_id,
+        long_id,
+    } = setup_homedir("test_expand")?;
+
+    assert!(
+        Command::new(env!("CARGO_BIN_EXE_gpg-expire-warner"))
+            .env("GNUPGHOME", &homedir)
+            .args(["--days", "2", &short_id, &long_id, "--extend", "10d"])
+            .stdout(Stdio::null())
+            .stderr(Stdio::null())
+            .spawn()?
+            .wait()?
+            .success(),
+        "Failed to extend validity",
+    );
+
+    let prog_output = String::from_utf8(
+        Command::new(env!("CARGO_BIN_EXE_gpg-expire-warner"))
+            .env("GNUPGHOME", &homedir)
+            .args(["--days", "7", &short_id, &long_id])
+            .output()?
+            .stdout,
+    )?;
+
+    assert!(
+        !prog_output.contains(&short_id),
+        "Short expiry key {} found in output: {}",
+        short_id,
+        prog_output,
+    );
+    assert!(
+        !prog_output.contains(&short_unchecked_id),
+        "Unchecked short expiry key {} found in output: {}",
+        short_unchecked_id,
+        prog_output,
+    );
+    assert!(
+        prog_output.contains(&long_id),
+        "Long expiry key {} not found in output: {}",
         long_id,
         prog_output,
     );
