@@ -1,21 +1,22 @@
 mod error;
 mod util;
 
+use clap::Parser;
 use std::process::Command;
 use std::time::SystemTime;
 use std::time::UNIX_EPOCH;
-use structopt::StructOpt;
 
 use crate::error::Error;
 use crate::util::GroupedExt;
 
-#[derive(StructOpt)]
-struct Opt {
-    #[structopt(short = "d", long = "days")]
+#[derive(Parser)]
+#[command(about, version)]
+struct Cli {
+    #[arg(short = 'd', long = "days")]
     /// Number of days before expiry to start warning
     warn_days: i64,
 
-    #[structopt(name = "keys")]
+    #[arg(name = "keys")]
     /// GPG key IDs in long format (40 uppercase hex characters, no spaces)
     keys: Vec<KeyId>,
 }
@@ -29,7 +30,7 @@ impl<'a> std::fmt::Display for KeyIdError<'a> {
     }
 }
 
-#[derive(Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 struct KeyId(String);
 impl std::fmt::Display for KeyId {
     fn fmt(&self, fmt: &mut std::fmt::Formatter) -> Result<(), std::fmt::Error> {
@@ -77,11 +78,11 @@ impl From<&Vec<Vec<&str>>> for GpgKeyStatus {
 }
 
 fn run() -> Result<i32, Error> {
-    let opt = Opt::from_args();
+    let cli = Cli::parse();
 
     let args = {
         let mut v: Vec<&str> = vec!["--with-colons", "--fixed-list-mode", "--list-keys"];
-        opt.keys.iter().for_each(|k| v.push(k.as_ref()));
+        cli.keys.iter().for_each(|k| v.push(k.as_ref()));
         v
     };
 
@@ -103,9 +104,9 @@ fn run() -> Result<i32, Error> {
     let now_secs = SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs();
     let expiring_keys: Vec<&GpgKeyStatus> = keys
         .iter()
-        .filter(|key_status| opt.keys.contains(&key_status.fingerprint))
+        .filter(|key_status| cli.keys.contains(&key_status.fingerprint))
         .filter(|key_status| match key_status.expire_days(now_secs) {
-            Some(days) => days <= opt.warn_days,
+            Some(days) => days <= cli.warn_days,
             None => false,
         })
         .collect();

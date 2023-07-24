@@ -12,4 +12,4 @@ categories = ["command-line-utilities"]
 license = "GPL-3.0-or-later"
 
 [dependencies]
-structopt = "0.2"
+clap = { version = "4.0", features = ["derive"] }
