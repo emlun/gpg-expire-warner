@@ -201,7 +201,7 @@ fn run() -> Result<i32, Error> {
 
                 if !update_subkeys.is_empty() {
                     let update_expiry_cmd = Command::new("gpg")
-                        .args(["--quick-set-expire", (status.fingerprint.as_ref()), &expire])
+                        .args(["--quick-set-expire", status.fingerprint.as_ref(), &expire])
                         .args(&update_subkeys)
                         .spawn()?
                         .wait()?;
