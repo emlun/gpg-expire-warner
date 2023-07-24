@@ -1,6 +1,7 @@
 mod error;
 
 use clap::Parser;
+use std::ffi::OsStr;
 use std::iter::Peekable;
 use std::process::Command;
 use std::time::SystemTime;
@@ -55,6 +56,11 @@ impl std::str::FromStr for KeyId {
 impl AsRef<str> for KeyId {
     fn as_ref(&self) -> &str {
         &self.0
+    }
+}
+impl AsRef<OsStr> for KeyId {
+    fn as_ref(&self) -> &OsStr {
+        self.0.as_ref()
     }
 }
 
@@ -196,7 +202,7 @@ fn run() -> Result<i32, Error> {
                 if !update_subkeys.is_empty() {
                     let update_expiry_cmd = Command::new("gpg")
                         .args(["--quick-set-expire", (status.fingerprint.as_ref()), &expire])
-                        .args(update_subkeys.iter().map(|id| id.as_ref()))
+                        .args(&update_subkeys)
                         .spawn()?
                         .wait()?;
 
