@@ -190,13 +190,13 @@ fn test_default() -> Result<(), Box<dyn std::error::Error>> {
 }
 
 #[test]
-fn test_expand() -> Result<(), Box<dyn std::error::Error>> {
+fn test_extend() -> Result<(), Box<dyn std::error::Error>> {
     let TestEnvironment {
         homedir,
         short_id,
         short_unchecked_id,
         long_id,
-    } = setup_homedir("test_expand")?;
+    } = setup_homedir("test_extend")?;
 
     assert!(
         Command::new(env!("CARGO_BIN_EXE_gpg-expire-warner"))
