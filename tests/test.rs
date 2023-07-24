@@ -1,11 +1,17 @@
 use std::path::Path;
+use std::path::PathBuf;
 use std::process::Command;
 use std::process::Stdio;
 
-#[test]
-fn test() -> Result<(), Box<dyn std::error::Error>> {
+struct TestEnvironment {
+    homedir: PathBuf,
+    short_id: String,
+    short_unchecked_id: String,
+    long_id: String,
+}
+
+fn setup_homedir() -> Result<TestEnvironment, Box<dyn std::error::Error>> {
     let dir = Path::new(env!("CARGO_TARGET_TMPDIR")).join("gpg-home");
-    let homedir = dir.to_str().expect("Failed to create test home directory");
 
     if dir.exists() {
         std::fs::remove_dir_all(&dir)?;
@@ -14,7 +20,7 @@ fn test() -> Result<(), Box<dyn std::error::Error>> {
 
     let gpg_cmd = || {
         let mut cmd = Command::new("gpg");
-        cmd.args(["--homedir", homedir]);
+        cmd.arg("--homedir").arg(&dir);
         cmd
     };
 
@@ -116,13 +122,26 @@ fn test() -> Result<(), Box<dyn std::error::Error>> {
         })
         .collect();
 
-    let short_id = key_ids[0];
-    let short_unchecked_id = key_ids[1];
-    let long_id = key_ids[2];
+    Ok(TestEnvironment {
+        homedir: dir,
+        short_id: key_ids[0].to_string(),
+        short_unchecked_id: key_ids[1].to_string(),
+        long_id: key_ids[2].to_string(),
+    })
+}
+
+#[test]
+fn test() -> Result<(), Box<dyn std::error::Error>> {
+    let TestEnvironment {
+        homedir,
+        short_id,
+        short_unchecked_id,
+        long_id,
+    } = setup_homedir()?;
 
     let prog_output = String::from_utf8(
         Command::new(env!("CARGO_BIN_EXE_gpg-expire-warner"))
-            .args(["--days", "2", short_id, long_id])
+            .args(["--days", "2", &short_id, &long_id])
             .env("GNUPGHOME", homedir)
             .output()?
             .stdout,
@@ -136,13 +155,13 @@ fn test() -> Result<(), Box<dyn std::error::Error>> {
         prog_output,
     );
     assert!(
-        !prog_output.contains(short_unchecked_id),
+        !prog_output.contains(&short_unchecked_id),
         "Unchecked short expiry key {} found in output: {}",
         short_unchecked_id,
         prog_output,
     );
     assert!(
-        !prog_output.contains(long_id),
+        !prog_output.contains(&long_id),
         "Long expiry key {} found in output: {}",
         long_id,
         prog_output,
