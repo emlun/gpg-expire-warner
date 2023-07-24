@@ -1,12 +1,13 @@
 mod error;
 mod util;
 
-use error::Error;
 use std::process::Command;
 use std::time::SystemTime;
 use std::time::UNIX_EPOCH;
 use structopt::StructOpt;
-use util::GroupedExt;
+
+use crate::error::Error;
+use crate::util::GroupedExt;
 
 #[derive(StructOpt)]
 struct Opt {
