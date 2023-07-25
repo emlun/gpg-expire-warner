@@ -20,9 +20,9 @@ struct Cli {
     /// GPG key IDs in long format (40 uppercase hex characters, no spaces)
     keys: Vec<KeyId>,
 
-    #[arg(long, name = "expire")]
-    /// Execute gpg --quick-set-expire to extend expiry time by <expire> for each key that expires soon
-    extend: Option<String>,
+    #[arg(long)]
+    /// Execute gpg --quick-set-expire to set expiration time to <expire> for each key that expires soon
+    expire: Option<String>,
 }
 
 #[derive(Debug)]
@@ -185,14 +185,14 @@ fn run() -> Result<i32, Error> {
             println!("{fpr}: {days} days");
         }
 
-        if let Some(expire) = cli.extend {
+        if let Some(expire) = cli.expire {
             for GpgMainKeyStatus { status, subkeys } in &status.main_keys {
                 if expiring_keys
                     .iter()
                     .any(|(expiring_fpr, _)| **expiring_fpr == status.fingerprint)
                 {
                     println!(
-                        "Extending validity by {expire} for main key: {}",
+                        "Setting expiry to {expire} for main key: {}",
                         status.fingerprint
                     );
 
@@ -227,7 +227,7 @@ fn run() -> Result<i32, Error> {
                         .collect::<Vec<&str>>()
                         .join(", ");
                     println!(
-                        "Extending validity by {expire} for subkeys: {}",
+                        "Setting expiry to {expire} for subkeys: {}",
                         update_subkeys_str
                     );
 

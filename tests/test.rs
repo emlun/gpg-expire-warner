@@ -194,25 +194,25 @@ fn test_default() -> Result<(), Box<dyn std::error::Error>> {
 }
 
 #[test]
-fn test_extend() -> Result<(), Box<dyn std::error::Error>> {
+fn test_set_expire() -> Result<(), Box<dyn std::error::Error>> {
     let TestEnvironment {
         homedir,
         short_id,
         short_unchecked_id,
         long_id,
         ..
-    } = setup_homedir("test_extend")?;
+    } = setup_homedir("test_set_expire")?;
 
     assert!(
         Command::new(env!("CARGO_BIN_EXE_gpg-expire-warner"))
             .env("GNUPGHOME", &homedir)
-            .args(["--days", "2", &short_id, &long_id, "--extend", "10d"])
+            .args(["--days", "2", &short_id, &long_id, "--expire", "10d"])
             .stdout(Stdio::null())
             .stderr(Stdio::null())
             .spawn()?
             .wait()?
             .success(),
-        "Failed to extend validity",
+        "Failed to set expiration",
     );
 
     let prog_output = String::from_utf8(
@@ -245,29 +245,29 @@ fn test_extend() -> Result<(), Box<dyn std::error::Error>> {
 }
 
 #[test]
-fn test_extend_main() -> Result<(), Box<dyn std::error::Error>> {
+fn test_set_expire_main() -> Result<(), Box<dyn std::error::Error>> {
     let TestEnvironment {
         homedir,
         main_id,
         short_id,
         short_unchecked_id,
         long_id,
-    } = setup_homedir("test_extend_main")?;
+    } = setup_homedir("test_set_expire_main")?;
 
     {
-        let extend_output = String::from_utf8(
+        let expire_output = String::from_utf8(
             Command::new(env!("CARGO_BIN_EXE_gpg-expire-warner"))
                 .env("GNUPGHOME", &homedir)
                 .args(["--days", "2", &main_id, &short_id, &long_id])
-                .args(["--extend", "10d"])
+                .args(["--expire", "10d"])
                 .output()?
                 .stdout,
         )?;
-        println!("{extend_output}");
+        println!("{expire_output}");
 
         assert!(
-            extend_output.contains(&main_id),
-            "Main key {main_id} not found in output: {extend_output}",
+            expire_output.contains(&main_id),
+            "Main key {main_id} not found in output: {expire_output}",
         );
     }
 
