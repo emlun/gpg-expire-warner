@@ -1,6 +1,6 @@
 [package]
 name = "gpg-expire-warner"
-version = "0.2.0"
+version = "0.2.1"
 authors = ["Emil Lundberg <emil@emlun.se>"]
 edition = "2021"
 description = "Prints a warning when GPG keys are about to expire"
