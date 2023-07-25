@@ -50,7 +50,7 @@ The following GPG keys will expire soon:
     The following GPG keys will expire soon:
     2C7D8465F19C3CDC26237087BFD86BE9948C849A: 5 days
     57E0FE20CF9F7BF57769909C0252D762936969DD: -20 days
-    Extending validity of these keys by: 1y
+    Extending validity by 1y for subkeys: 2C7D8465F19C3CDC26237087BFD86BE9948C849A, 57E0FE20CF9F7BF57769909C0252D762936969DD
     ```
 
     `<expire>` may be any expiry time format recognized by `gpg --quick-set-expire`.

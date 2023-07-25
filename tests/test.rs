@@ -5,6 +5,7 @@ use std::process::Stdio;
 
 struct TestEnvironment {
     homedir: PathBuf,
+    main_id: String,
     short_id: String,
     short_unchecked_id: String,
     long_id: String,
@@ -40,6 +41,7 @@ where
 
     let test_env = TestEnvironment {
         homedir: dir,
+        main_id: "".to_string(),
         short_id: "".to_string(),
         short_unchecked_id: "".to_string(),
         long_id: "".to_string(),
@@ -143,6 +145,7 @@ where
         .collect();
 
     Ok(TestEnvironment {
+        main_id: main_id.to_string(),
         short_id: key_ids[0].to_string(),
         short_unchecked_id: key_ids[1].to_string(),
         long_id: key_ids[2].to_string(),
@@ -157,6 +160,7 @@ fn test_default() -> Result<(), Box<dyn std::error::Error>> {
         short_id,
         short_unchecked_id,
         long_id,
+        ..
     } = setup_homedir("test_default")?;
 
     let prog_output = String::from_utf8(
@@ -196,6 +200,7 @@ fn test_extend() -> Result<(), Box<dyn std::error::Error>> {
         short_id,
         short_unchecked_id,
         long_id,
+        ..
     } = setup_homedir("test_extend")?;
 
     assert!(
@@ -236,5 +241,62 @@ fn test_extend() -> Result<(), Box<dyn std::error::Error>> {
         long_id,
         prog_output,
     );
+    Ok(())
+}
+
+#[test]
+fn test_extend_main() -> Result<(), Box<dyn std::error::Error>> {
+    let TestEnvironment {
+        homedir,
+        main_id,
+        short_id,
+        short_unchecked_id,
+        long_id,
+    } = setup_homedir("test_extend_main")?;
+
+    {
+        let extend_output = String::from_utf8(
+            Command::new(env!("CARGO_BIN_EXE_gpg-expire-warner"))
+                .env("GNUPGHOME", &homedir)
+                .args(["--days", "2", &main_id, &short_id, &long_id])
+                .args(["--extend", "10d"])
+                .output()?
+                .stdout,
+        )?;
+        println!("{extend_output}");
+
+        assert!(
+            extend_output.contains(&main_id),
+            "Main key {main_id} not found in output: {extend_output}",
+        );
+    }
+
+    {
+        let check_output = String::from_utf8(
+            Command::new(env!("CARGO_BIN_EXE_gpg-expire-warner"))
+                .env("GNUPGHOME", &homedir)
+                .args(["--days", "7", &main_id, &short_id, &long_id])
+                .output()?
+                .stdout,
+        )?;
+
+        assert!(
+            !check_output.contains(&main_id),
+            "Main key {short_id} found in output: {check_output}",
+        );
+        assert!(
+            !check_output.contains(&short_id),
+            "Short expiry key {short_id} found in output: {check_output}",
+        );
+        assert!(
+            !check_output.contains(&short_unchecked_id),
+            "Unchecked short expiry key {short_unchecked_id} found in output: {check_output}",
+        );
+        assert!(
+            check_output.contains(&long_id),
+            "Long expiry key {long_id} not found in output: {check_output}",
+        );
+    }
+
     Ok(())
 }

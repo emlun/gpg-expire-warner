@@ -186,9 +186,30 @@ fn run() -> Result<i32, Error> {
         }
 
         if let Some(expire) = cli.extend {
-            println!("Extending validity of these keys by: {expire}");
-
             for GpgMainKeyStatus { status, subkeys } in &status.main_keys {
+                if expiring_keys
+                    .iter()
+                    .any(|(expiring_fpr, _)| **expiring_fpr == status.fingerprint)
+                {
+                    println!(
+                        "Extending validity by {expire} for main key: {}",
+                        status.fingerprint
+                    );
+
+                    let update_expiry_cmd = Command::new("gpg")
+                        .args(["--quick-set-expire", status.fingerprint.as_ref(), &expire])
+                        .spawn()?
+                        .wait()?;
+
+                    if !update_expiry_cmd.success() {
+                        eprintln!(
+                            "Failed to update expiry of main key: {}",
+                            status.fingerprint
+                        );
+                        return Ok(1);
+                    }
+                }
+
                 let update_subkeys: Vec<&KeyId> = subkeys
                     .iter()
                     .map(|subkey| &subkey.fingerprint)
@@ -200,6 +221,16 @@ fn run() -> Result<i32, Error> {
                     .collect();
 
                 if !update_subkeys.is_empty() {
+                    let update_subkeys_str = update_subkeys
+                        .iter()
+                        .map(|id| id.as_ref())
+                        .collect::<Vec<&str>>()
+                        .join(", ");
+                    println!(
+                        "Extending validity by {expire} for subkeys: {}",
+                        update_subkeys_str
+                    );
+
                     let update_expiry_cmd = Command::new("gpg")
                         .args(["--quick-set-expire", status.fingerprint.as_ref(), &expire])
                         .args(&update_subkeys)
@@ -207,14 +238,7 @@ fn run() -> Result<i32, Error> {
                         .wait()?;
 
                     if !update_expiry_cmd.success() {
-                        eprintln!(
-                            "Failed to update expiry of keys: {}",
-                            update_subkeys
-                                .into_iter()
-                                .map(|id| id.as_ref())
-                                .collect::<Vec<&str>>()
-                                .join(", ")
-                        );
+                        eprintln!("Failed to update expiry of subkeys: {}", update_subkeys_str);
                         return Ok(1);
                     }
                 }
